@@ -79,7 +79,7 @@ object Extraction {
     val dataView = stationsDF.join(yearDF)
       .filter(
         (stationsDF(WBAN).isNotNull && yearDF(WBAN).isNotNull && stationsDF(WBAN) === yearDF(WBAN))
-          .or(stationsDF(WBAN).isNull && yearDF(WBAN).isNull && stationsDF(WBAN) === yearDF(WBAN))
+          .or(stationsDF(WBAN).isNull && yearDF(WBAN).isNull && stationsDF(STN) === yearDF(STN))
           .and(yearDF(Temperature) =!= 9999.9)
          )
       .as[GatheredData]
