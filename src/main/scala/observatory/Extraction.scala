@@ -4,12 +4,14 @@ import java.nio.file.Paths
 import java.time.LocalDate
 
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.sql.{Column, SparkSession}
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, Row, SparkSession}
-import Names._
+import ownCode.helpers.Names._
+import ownCode.models.GatheredData
 /**
   * 1st milestone: data extraction
   */
+
 object Extraction {
 
   val spark = SparkSession
@@ -17,6 +19,8 @@ object Extraction {
     .appName("example")
     .config("spark.master", "local")
     .getOrCreate()
+
+  import spark.implicits._
 
   val logger = Logger.getLogger("org.apache.spark")
   logger.setLevel(Level.WARN)
@@ -28,7 +32,31 @@ object Extraction {
     * @return A sequence containing triplets (date, location, temperature)
     */
   def locateTemperatures(year: Int, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Double)] = {
-    ???
+
+    val stationsDF = spark.read
+      .schema(stationsSchema)
+      .option("delimiter", ",")
+      .option("mode", "DROPMALFORMED")
+      .csv(getResource(stationsFile))
+
+    val yearDF = spark.read
+      .schema(yearSchema)
+      .option("delimiter", ",")
+      .option("mode", "FAILFAST")
+      .csv(getResource(temperaturesFile))
+
+    val dataView = stationsDF.join(yearDF)
+      .filter(
+        stationsDF(STN) === yearDF(STN) &&
+//          (stationsDF(WBAN).isNotNull && yearDF(WBAN).isNotNull && stationsDF(WBAN) === yearDF(WBAN))
+//          .otherwise(true) &&
+          yearDF.col(Temperature) =!= 9999.9)
+      .as[GatheredData]
+
+    dataView.map { data ⇒
+      (LocalDate.of(year, data.month, data.day), Location(data.lat, data.long), toCelsius(data.temperature))
+    }.collect()
+
   }
 
   /**
@@ -43,14 +71,9 @@ object Extraction {
   private val wban = StructField(WBAN, LongType, nullable = true)
 
   private val stationsSchema = StructType(stn :: wban ::
-      StructField(Latitude, DoubleType, nullable = true) ::
-      StructField(Longitude, DoubleType, nullable = true) :: Nil
+      StructField(Latitude, DoubleType, nullable = false) ::
+      StructField(Longitude, DoubleType, nullable = false) :: Nil
   )
-
-  private def stationsRow(line: List[String]): Row = {
-    val (stnR, wbanR, latR, longR) = (line.head, line(1), line(2), line(3))
-    Row(stnR.toLong, wbanR.toLong, latR.toDouble, longR.toDouble)
-  }
 
   private val yearSchema = StructType(
     stn :: wban ::
@@ -59,31 +82,9 @@ object Extraction {
     StructField(Temperature, IntegerType, nullable = false) :: Nil
   )
 
-  private def yearRow(line: List[String]): Row = {
-    val (stnR, wbanR, monthR, dayR, tempR) = (line.head, line(1), line(2), line(3), line(4))
-    Row(stnR.toLong, wbanR.toLong, monthR.toInt, dayR.toInt, tempR.toInt)
-  }
-
-  private def read(resource: String, structType: StructType, rowFunc: List[String] ⇒ Row): DataFrame = {
-    val rdd = spark.sparkContext.textFile(getResource(resource))
-    val lines = rdd
-        .map(_.split(",").to[List])
-        .map(rowFunc)
-
-    spark.createDataFrame(lines, structType)
-  }
-
   private def getResource(name: String): String =
     Paths.get(getClass.getResource(name).toURI).toString
 
-}
+  private def toCelsius(fahrenheit: Double): Double = (fahrenheit - 32) * 5/9
 
-object Names {
-  val STN = "STN"
-  val WBAN = "WBAN"
-  val Latitude = "latitude"
-  val Longitude = "longitude"
-  val Month = "month"
-  val Day = "day"
-  val Temperature = "temperature"
 }
