@@ -4,7 +4,7 @@ import java.nio.file.Paths
 import java.time.LocalDate
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.sql.{Column, SparkSession}
+import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 import org.apache.spark.sql.types._
 import ownCode.helpers.Names._
 import ownCode.models.GatheredData
@@ -35,27 +35,15 @@ object Extraction {
 
     val stationsDF = spark.read
       .schema(stationsSchema)
-      .option("delimiter", ",")
       .option("mode", "DROPMALFORMED")
       .csv(getResource(stationsFile))
 
     val yearDF = spark.read
       .schema(yearSchema)
-      .option("delimiter", ",")
       .option("mode", "FAILFAST")
       .csv(getResource(temperaturesFile))
 
-    val dataView = stationsDF.join(yearDF)
-      .filter(
-        stationsDF(STN) === yearDF(STN) &&
-//          (stationsDF(WBAN).isNotNull && yearDF(WBAN).isNotNull && stationsDF(WBAN) === yearDF(WBAN))
-//          .otherwise(true) &&
-          yearDF.col(Temperature) =!= 9999.9)
-      .as[GatheredData]
-
-    dataView.map { data ⇒
-      (LocalDate.of(year, data.month, data.day), Location(data.lat, data.long), toCelsius(data.temperature))
-    }.collect()
+    joinAndTransform(stationsDF, yearDF, year)
 
   }
 
@@ -85,6 +73,20 @@ object Extraction {
   private def getResource(name: String): String =
     Paths.get(getClass.getResource(name).toURI).toString
 
-  private def toCelsius(fahrenheit: Double): Double = (fahrenheit - 32) * 5/9
+  def toCelsius(fahrenheit: Double): Double = (fahrenheit - 32) * 5/9
+
+  def joinAndTransform(stationsDF: DataFrame, yearDF: DataFrame, year: Int):  Iterable[(LocalDate, Location, Double)] = {
+    val dataView = stationsDF.join(yearDF)
+      .filter(
+        (stationsDF(WBAN).isNotNull && yearDF(WBAN).isNotNull && stationsDF(WBAN) === yearDF(WBAN))
+          .or(stationsDF(WBAN).isNull && yearDF(WBAN).isNull && stationsDF(WBAN) === yearDF(WBAN))
+          .and(yearDF(Temperature) =!= 9999.9)
+         )
+      .as[GatheredData]
+
+    dataView.map { data ⇒
+      (LocalDate.of(year, data.month, data.day), Location(data.lat, data.lon), toCelsius(data.temperature))
+    }.collect()
+  }
 
 }
