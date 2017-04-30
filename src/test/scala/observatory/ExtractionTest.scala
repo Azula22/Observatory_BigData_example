@@ -6,10 +6,11 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.junit.runner.RunWith
 import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 import org.scalatest.junit.JUnitRunner
-import ownCode.helpers.Names._
 
 @RunWith(classOf[JUnitRunner])
 class ExtractionTest extends FunSuite with BeforeAndAfter with Matchers {
+
+  import Extraction.{Month, Day, Temperature, Latitude, Longitude, Id}
 
   private val spark: SparkSession = SparkSession
     .builder()
@@ -28,25 +29,27 @@ class ExtractionTest extends FunSuite with BeforeAndAfter with Matchers {
 
     val year = 2008
 
+    def toCelsius(temp: Double) = (temp - 32) / 9 * 5
+
     stationsData = List(
-      (49999, Some(6), +72.280, -038.820), //Match
-      (3452, None, +72.310,-040.480), //One key
-      (49999, Some(7), +72.310, -040.480)//Match
-    ).toDF(STN, WBAN, Latitude, Longitude)
+      ("649999", +72.280, -038.820), //Match
+      ("3452", +72.310,-040.480), //One key
+      ("749999", +72.310, -040.480)//Match
+    ).toDF(Id, Latitude, Longitude)
 
     yearData = List(
-      (49999, Some(7), 1, 18, 35.3),
-      (49999, None, 1, 18, 35.3),
-      (3452, None , 1, 26, 22.1),
-      (49999, Some(6), 2, 6, 33.2)
-    ).toDF(STN, WBAN, Month, Day, Temperature)
+      ("749999", 1, 18, toCelsius(35.3)),
+      ("49999", 1, 18, toCelsius(35.3)),
+      ("3452", 1, 26, toCelsius(22.1)),
+      ("649999", 2, 6, toCelsius(33.2))
+    ).toDF(Id, Month, Day, Temperature)
 
     val resolved: Iterable[(LocalDate, Location, Double)] = Extraction.joinAndTransform(stationsData, yearData, year)
 
     val expectedResult = Iterable(
-      (LocalDate.of(year, 2, 6), Location(+72.280, -038.820), Extraction.toCelsius(33.2)),
-      (LocalDate.of(year, 1, 18), Location(+72.310, -040.480), Extraction.toCelsius(35.3)),
-      (LocalDate.of(year, 1, 26), Location(+72.310, -040.480), Extraction.toCelsius(22.1))
+      (LocalDate.of(year, 2, 6), Location(+72.280, -038.820), toCelsius(33.2)),
+      (LocalDate.of(year, 1, 18), Location(+72.310, -040.480), toCelsius(35.3)),
+      (LocalDate.of(year, 1, 26), Location(+72.310, -040.480), toCelsius(22.1))
     )
 
     resolved.toSet.shouldEqual(expectedResult.toSet)
