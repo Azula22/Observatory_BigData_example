@@ -22,12 +22,6 @@ object Extraction {
      day: Int,
      temperature: Double)
 
-  case class ForYearly(year: Int, loc: Location, temp: Double)
-
-  object ForYearly {
-    def fromTuple(t: (LocalDate, Location, Double)): ForYearly = new ForYearly(t._1.getYear, t._2, t._3)
-  }
-
   val Id = "id"
   val STN = "stn"
   val WBAN = "wban"
