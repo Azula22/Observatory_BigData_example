@@ -6,6 +6,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.junit.runner.RunWith
 import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 import org.scalatest.junit.JUnitRunner
+import ownCode.helpers.Names._
 
 @RunWith(classOf[JUnitRunner])
 class ExtractionTest extends FunSuite with BeforeAndAfter with Matchers {
@@ -31,16 +32,16 @@ class ExtractionTest extends FunSuite with BeforeAndAfter with Matchers {
       (49999, Some(6), +72.280, -038.820), //Match
       (3452, None, +72.310,-040.480), //One key
       (49999, Some(7), +72.310, -040.480)//Match
-    ).toDF()
+    ).toDF(STN, WBAN, Latitude, Longitude)
 
     yearData = List(
       (49999, Some(7), 1, 18, 35.3),
       (49999, None, 1, 18, 35.3),
       (3452, None , 1, 26, 22.1),
       (49999, Some(6), 2, 6, 33.2)
-    ).toDF()
+    ).toDF(STN, WBAN, Month, Day, Temperature)
 
-    val resolved: Iterable[(LocalDate, Location, Double)] = Extraction.joinAndTransform(stationsData, yearData, 10)
+    val resolved: Iterable[(LocalDate, Location, Double)] = Extraction.joinAndTransform(stationsData, yearData, year)
 
     val expectedResult = Iterable(
       (LocalDate.of(year, 2, 6), Location(+72.280, -038.820), Extraction.toCelsius(33.2)),

@@ -76,17 +76,20 @@ object Extraction {
   def toCelsius(fahrenheit: Double): Double = (fahrenheit - 32) * 5/9
 
   def joinAndTransform(stationsDF: DataFrame, yearDF: DataFrame, year: Int):  Iterable[(LocalDate, Location, Double)] = {
-    val dataView = stationsDF.join(yearDF)
-      .filter(
-        (stationsDF(WBAN).isNotNull && yearDF(WBAN).isNotNull && stationsDF(WBAN) === yearDF(WBAN))
-          .or(stationsDF(WBAN).isNull && yearDF(WBAN).isNull && stationsDF(STN) === yearDF(STN))
-          .and(yearDF(Temperature) =!= 9999.9)
-         )
+
+    val dataView = stationsDF.join(
+      yearDF,
+      stationsDF(STN) === yearDF(STN) && stationsDF(WBAN) <=> yearDF(WBAN))
+      .filter(yearDF(Temperature) =!= 9999.9)
+      .drop(yearDF(STN))
+      .drop(yearDF(WBAN))
       .as[GatheredData]
 
-    dataView.map { data ⇒
-      (LocalDate.of(year, data.month, data.day), Location(data.lat, data.lon), toCelsius(data.temperature))
-    }.collect()
+    dataView.map ( data ⇒ (data.month, data.day, data.lat, data.lon, data.temperature))
+      .collect()
+      .par
+      .map{ case (mm, dd, lat, lon, temp) ⇒
+      (LocalDate.of(year, mm, dd), Location(lat, lon), toCelsius(temp))}(collection.breakOut)
   }
 
 }
