@@ -9,28 +9,27 @@ import com.sksamuel.scrimage.Image
 object Visualization {
 
 
+
+  val coef = 2
+  val TemperatureColumn = "temperature"
+  val ColorColumn = "color"
+
+  //  val colorsMap: Map[Int, Color] = Map(
+  //    60 → Color(255, 255, 255),
+  //    32 → Color(255, 0, 0),
+  //    12 → Color(255, 255, 0),
+  //    0 → Color(0, 255, 255),
+  //    -15 → Color(0, 0, 255),
+  //    -27 → Color(255, 0, 255),
+  //    -50 → Color(33, 0, 107),
+  //    -60 → Color(0, 0, 0)
+  //  )
+
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location
     * @param location Location where to predict the temperature
     * @return The predicted temperature at `location`
     */
-
-  val coef = 2
-
-//  val colorsMap: Map[Int, Color] = Map(
-//    60 → Color(255, 255, 255),
-//    32 → Color(255, 0, 0),
-//    12 → Color(255, 255, 0),
-//    0 → Color(0, 255, 255),
-//    -15 → Color(0, 0, 255),
-//    -27 → Color(255, 0, 255),
-//    -50 → Color(33, 0, 107),
-//    -60 → Color(0, 0, 0)
-//  )
-
-  val TemperatureColumn = "temperature"
-  val ColorColumn = "color"
-
   def predictTemperature(temperatures: Iterable[(Location, Double)], location: Location): Double = {
     ???
   }
