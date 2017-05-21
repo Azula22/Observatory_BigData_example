@@ -33,8 +33,7 @@ object Extraction {
   val Day = "day"
   val Temperature = "temperature"
 
-  val spark = SparkSession
-    .builder()
+  val spark = SparkSession.builder()
     .appName("example")
     .config("spark.master", "local")
     .getOrCreate()

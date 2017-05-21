@@ -12,7 +12,7 @@ class ExtractionTest extends FunSuite with BeforeAndAfter with Matchers {
 
   import Extraction.{Month, Day, Temperature, Latitude, Longitude, Id}
 
-  private val spark: SparkSession = SparkSession
+  val spark: SparkSession = SparkSession
     .builder()
     .appName("example")
     .config("spark.master", "local")
