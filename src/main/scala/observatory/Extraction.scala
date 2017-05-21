@@ -22,15 +22,16 @@ object Extraction {
      day: Int,
      temperature: Double)
 
+  private val STN = "stn"
+  private val WBAN = "wban"
+  private val YearTemp = "temp"
+
   val Id = "id"
-  val STN = "stn"
-  val WBAN = "wban"
   val Latitude = "lat"
   val Longitude = "lon"
   val Month = "month"
   val Day = "day"
   val Temperature = "temperature"
-  val YearTemp = "temp"
 
   val spark = SparkSession
     .builder()
